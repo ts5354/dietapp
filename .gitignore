@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.uv-cache/
+htmlcov/
+.coverage
+
+# Environment files (examples remain tracked)
+.env
+.env.*
+!.env.example
+
+# Flutter and Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+coverage/
+android/.gradle/
+android/local.properties
+ios/Flutter/ephemeral/
+ios/Pods/
+macos/Flutter/ephemeral/
+
+# IDEs and operating systems
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
