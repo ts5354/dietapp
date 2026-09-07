@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/home_screen.dart';
 import '../features/nutrition/presentation/nutrition_screen.dart';
+import '../features/symptom/presentation/symptom_screen.dart';
 import '../features/weight/presentation/weight_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -18,6 +19,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
           path: '/record/food',
           builder: (context, state) => const NutritionScreen()),
+      GoRoute(
+          path: '/record/symptom',
+          builder: (context, state) => const SymptomScreen()),
     ],
   );
   ref.onDispose(router.dispose);
