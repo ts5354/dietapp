@@ -21,6 +21,9 @@ class HomeScreen extends StatelessWidget {
         FilledButton(
             onPressed: () => context.go('/record/symptom'),
             child: const Text('体調')),
+        FilledButton(
+            onPressed: () => context.go('/record/injection'),
+            child: const Text('注射')),
       ])),
     );
   }
