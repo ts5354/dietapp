@@ -292,14 +292,25 @@ class FakeDashboardRepository implements DashboardRepository {
   final List<Future<Dashboard>> responses = [];
   final List<DateTime> dates = [];
   final List<String> timezones = [];
+  bool alignResponseDateToRequest = false;
+
   @override
   Future<Dashboard> getDashboard({
     required DateTime date,
     required String timezone,
-  }) {
+  }) async {
     dates.add(date);
     timezones.add(timezone);
-    return responses.removeAt(0);
+    final response = await responses.removeAt(0);
+    if (!alignResponseDateToRequest) return response;
+    return Dashboard(
+      DateTime(date.year, date.month, date.day),
+      response.timezone,
+      response.weight,
+      response.nutrition,
+      response.symptom,
+      response.injection,
+    );
   }
 }
 
@@ -314,6 +325,11 @@ Future<void> pumpHomeWithRepository(
   FakeDashboardRepository repository, {
   bool settle = true,
 }) async {
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+  repository.alignResponseDateToRequest = true;
   await tester.pumpWidget(ProviderScope(
     overrides: [
       dashboardRepositoryProvider.overrideWithValue(repository),

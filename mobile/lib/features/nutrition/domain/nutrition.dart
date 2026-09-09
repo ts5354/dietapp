@@ -4,6 +4,61 @@ import '../../weight/domain/weight.dart';
 
 enum NutritionMode { normal, freeDay, unrecorded }
 
+class NutritionDaySummary {
+  const NutritionDaySummary({
+    required this.date,
+    required this.mode,
+    required this.memo,
+    required this.totalCalories,
+    required this.totalProteinG,
+  });
+
+  factory NutritionDaySummary.fromJson(Map<String, dynamic> json) {
+    for (final field in [
+      'date',
+      'mode',
+      'memo',
+      'total_calories',
+      'total_protein_g'
+    ]) {
+      if (!json.containsKey(field)) {
+        throw ApiException.contract('Missing $field.');
+      }
+    }
+    final mode = switch (json['mode']) {
+      'NORMAL' => NutritionMode.normal,
+      'FREE_DAY' => NutritionMode.freeDay,
+      _ => throw ApiException.contract('Unknown nutrition mode.'),
+    };
+    final calories = json['total_calories'];
+    final protein = json['total_protein_g'];
+    if (mode == NutritionMode.normal) {
+      if (calories is! int ||
+          calories < 0 ||
+          protein is! num ||
+          !protein.isFinite ||
+          protein < 0) {
+        throw ApiException.contract('NORMAL totals are invalid.');
+      }
+    } else if (calories != null || protein != null) {
+      throw ApiException.contract('FREE_DAY totals must be null.');
+    }
+    return NutritionDaySummary(
+      date: _date(json['date']),
+      mode: mode,
+      memo: _requiredNullableString(json, 'memo'),
+      totalCalories: calories as int?,
+      totalProteinG: (protein as num?)?.toDouble(),
+    );
+  }
+
+  final DateTime date;
+  final NutritionMode mode;
+  final String? memo;
+  final int? totalCalories;
+  final double? totalProteinG;
+}
+
 class FoodLog {
   const FoodLog({
     required this.id,

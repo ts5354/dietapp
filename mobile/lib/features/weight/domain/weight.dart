@@ -10,14 +10,29 @@ class WeightRecord {
       required this.memo,
       required this.createdAt,
       required this.updatedAt});
-  factory WeightRecord.fromJson(Map<String, dynamic> json) => WeightRecord(
-      id: _int(json['id'], 'id'),
-      recordDate: _date(json['record_date']),
-      weightKg: _num(json['weight_kg']).toDouble(),
-      recordedAt: _timestamp(json['recorded_at']),
-      memo: json['memo'] == null ? null : _string(json['memo'], 'memo'),
-      createdAt: _timestamp(json['created_at']),
-      updatedAt: _timestamp(json['updated_at']));
+  factory WeightRecord.fromJson(Map<String, dynamic> json) {
+    for (final field in [
+      'id',
+      'record_date',
+      'weight_kg',
+      'recorded_at',
+      'memo',
+      'created_at',
+      'updated_at'
+    ]) {
+      if (!json.containsKey(field)) {
+        throw ApiException.contract('Missing $field.');
+      }
+    }
+    return WeightRecord(
+        id: _int(json['id'], 'id'),
+        recordDate: _date(json['record_date']),
+        weightKg: _num(json['weight_kg']).toDouble(),
+        recordedAt: _timestamp(json['recorded_at']),
+        memo: json['memo'] == null ? null : _string(json['memo'], 'memo'),
+        createdAt: _timestamp(json['created_at']),
+        updatedAt: _timestamp(json['updated_at']));
+  }
   final int id;
   final DateTime recordDate;
   final double weightKg;
@@ -102,7 +117,9 @@ int _int(Object? v, String n) {
 }
 
 num _num(Object? v) {
-  if (v is! num) throw ApiException.contract('weight_kg must be a number.');
+  if (v is! num || !v.isFinite || v <= 0) {
+    throw ApiException.contract('weight_kg must be a positive finite number.');
+  }
   return v;
 }
 
