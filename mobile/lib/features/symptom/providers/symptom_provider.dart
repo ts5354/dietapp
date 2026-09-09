@@ -6,8 +6,6 @@ import '../../../core/timezone/device_timezone.dart';
 import '../data/symptom_repository.dart';
 import '../domain/symptom.dart';
 
-final deviceTimezoneProvider =
-    Provider<DeviceTimezone>((ref) => const PlatformDeviceTimezone());
 final symptomRepositoryProvider = Provider<SymptomRepository>(
     (ref) => SymptomRepository(ref.watch(dioProvider)));
 

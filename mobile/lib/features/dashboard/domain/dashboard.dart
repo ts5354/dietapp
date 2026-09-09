@@ -11,7 +11,7 @@ class Dashboard {
       this.symptom, this.injection);
   factory Dashboard.fromJson(Map<String, dynamic> json) => Dashboard(
         _date(json['date'], 'date'),
-        _string(json['timezone'], 'timezone'),
+        _nonEmptyString(json['timezone'], 'timezone'),
         DashboardWeightSection.fromJson(_map(json['weight'], 'weight')),
         DashboardNutritionSection.fromJson(
             _map(json['nutrition'], 'nutrition')),
@@ -43,11 +43,14 @@ class DashboardWeightSection {
 
 class DashboardWeightRecord {
   const DashboardWeightRecord(this.recordDate, this.weightKg);
-  factory DashboardWeightRecord.fromJson(Map<String, dynamic> json) =>
-      DashboardWeightRecord(
-        _date(json['record_date'], 'record_date'),
-        _number(json['weight_kg'], 'weight_kg').toDouble(),
-      );
+  factory DashboardWeightRecord.fromJson(Map<String, dynamic> json) {
+    final weight = _number(json['weight_kg'], 'weight_kg');
+    if (weight <= 0) throw ApiException.contract('weight_kg must be positive.');
+    return DashboardWeightRecord(
+      _date(json['record_date'], 'record_date'),
+      weight.toDouble(),
+    );
+  }
   final DateTime recordDate;
   final double weightKg;
 }
@@ -75,7 +78,7 @@ class DashboardNutritionRecord {
       'FREE_DAY' => DashboardNutritionMode.freeDay,
       _ => throw ApiException.contract('Unknown nutrition mode.'),
     };
-    final calories = _nullableNumber(json, 'total_calories');
+    final calories = _nullableInteger(json, 'total_calories');
     final protein = _nullableNumber(json, 'total_protein_g');
     if (mode == DashboardNutritionMode.normal &&
         (calories == null || protein == null)) {
@@ -85,9 +88,13 @@ class DashboardNutritionRecord {
         (calories != null || protein != null)) {
       throw ApiException.contract('FREE_DAY totals must be null.');
     }
+    if ((calories != null && calories < 0) ||
+        (protein != null && protein < 0)) {
+      throw ApiException.contract('Nutrition totals must not be negative.');
+    }
     return DashboardNutritionRecord(
       mode,
-      calories?.toInt(),
+      calories,
       protein?.toDouble(),
     );
   }
@@ -116,10 +123,10 @@ class DashboardSymptomRecord {
   factory DashboardSymptomRecord.fromJson(Map<String, dynamic> json) =>
       DashboardSymptomRecord(
         _timestamp(json['recorded_at'], 'recorded_at'),
-        _integer(json['nausea'], 'nausea'),
-        _integer(json['abdominal_pain'], 'abdominal_pain'),
-        _integer(json['fatigue'], 'fatigue'),
-        _integer(json['appetite'], 'appetite'),
+        _scale(json['nausea'], 'nausea'),
+        _scale(json['abdominal_pain'], 'abdominal_pain'),
+        _scale(json['fatigue'], 'fatigue'),
+        _scale(json['appetite'], 'appetite'),
         _bowel(json['bowel_condition']),
       );
   final DateTime recordedAt;
@@ -192,8 +199,18 @@ String _string(Object? value, String name) {
   return value;
 }
 
+String _nonEmptyString(Object? value, String name) {
+  final result = _string(value, name);
+  if (result.trim().isEmpty) {
+    throw ApiException.contract('$name must not be empty.');
+  }
+  return result;
+}
+
 num _number(Object? value, String name) {
-  if (value is! num) throw ApiException.contract('$name must be a number.');
+  if (value is! num || !value.isFinite) {
+    throw ApiException.contract('$name must be a finite number.');
+  }
   return value;
 }
 
@@ -206,6 +223,20 @@ num? _nullableNumber(Map<String, dynamic> json, String key) {
 int _integer(Object? value, String name) {
   if (value is! int) throw ApiException.contract('$name must be an integer.');
   return value;
+}
+
+int _scale(Object? value, String name) {
+  final result = _integer(value, name);
+  if (result < 1 || result > 10) {
+    throw ApiException.contract('$name must be between 1 and 10.');
+  }
+  return result;
+}
+
+int? _nullableInteger(Map<String, dynamic> json, String key) {
+  if (!json.containsKey(key)) throw ApiException.contract('$key is required.');
+  final value = json[key];
+  return value == null ? null : _integer(value, key);
 }
 
 DashboardBowelCondition? _bowel(Object? value) => switch (value) {
@@ -230,7 +261,7 @@ DateTime _date(Object? value, String name) {
 
 DateTime _timestamp(Object? value, String name) {
   final parsed = value is String ? DateTime.tryParse(value) : null;
-  if (parsed == null || !parsed.isUtc) {
+  if (parsed == null || !RegExp(r'Z$').hasMatch(value as String)) {
     throw ApiException.contract('$name must be a UTC timestamp.');
   }
   return parsed;

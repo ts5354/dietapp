@@ -1,4 +1,8 @@
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final deviceTimezoneProvider =
+    Provider<DeviceTimezone>((ref) => const PlatformDeviceTimezone());
 
 abstract interface class DeviceTimezone {
   Future<String> currentIdentifier();

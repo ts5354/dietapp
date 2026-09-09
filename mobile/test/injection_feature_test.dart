@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:dietapp/core/config/api_config.dart';
 import 'package:dietapp/core/network/api_error.dart';
+import 'package:dietapp/core/network/dio_provider.dart';
 import 'package:dietapp/features/injection/data/injection_repository.dart';
 import 'package:dietapp/features/injection/domain/injection.dart';
 import 'package:dietapp/features/injection/presentation/injection_screen.dart';
@@ -476,7 +478,12 @@ void main() {
         (tester) async {
       final fake = FakeInjectionRepository();
       await tester.pumpWidget(ProviderScope(
-        overrides: [injectionRepositoryProvider.overrideWithValue(fake)],
+        overrides: [
+          apiConfigProvider.overrideWithValue(
+            ApiConfig(baseUrl: 'http://example.test'),
+          ),
+          injectionRepositoryProvider.overrideWithValue(fake),
+        ],
         child: const _RouterApp(),
       ));
       expect(find.text('体重'), findsOneWidget);

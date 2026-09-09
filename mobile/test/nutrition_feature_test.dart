@@ -1,7 +1,13 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:dietapp/core/config/api_config.dart';
 import 'package:dietapp/core/network/api_error.dart';
+import 'package:dietapp/core/network/dio_provider.dart';
+import 'package:dietapp/core/timezone/device_timezone.dart';
+import 'package:dietapp/features/dashboard/data/dashboard_repository.dart';
+import 'package:dietapp/features/dashboard/domain/dashboard.dart';
+import 'package:dietapp/features/dashboard/providers/dashboard_provider.dart';
 import 'package:dietapp/features/nutrition/data/nutrition_repository.dart';
 import 'package:dietapp/features/nutrition/domain/nutrition.dart';
 import 'package:dietapp/features/nutrition/presentation/nutrition_screen.dart';
@@ -476,6 +482,11 @@ void main() {
       final fake = FakeNutritionRepository()
         ..getResults.add(Future.value(day(NutritionMode.unrecorded)));
       await tester.pumpWidget(ProviderScope(overrides: [
+        apiConfigProvider.overrideWithValue(
+          ApiConfig(baseUrl: 'http://example.test'),
+        ),
+        dashboardRepositoryProvider.overrideWithValue(_DashboardRepository()),
+        deviceTimezoneProvider.overrideWithValue(_DeviceTimezone()),
         nutritionRepositoryProvider.overrideWithValue(fake),
         weightRepositoryProvider.overrideWithValue(_MissingWeightRepository()),
       ], child: const TestRouterApp()));
@@ -719,4 +730,29 @@ class TestRouterApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) =>
       MaterialApp.router(routerConfig: ref.watch(appRouterProvider));
+}
+
+class _DeviceTimezone implements DeviceTimezone {
+  @override
+  Future<String> currentIdentifier() async => 'UTC';
+}
+
+class _DashboardRepository implements DashboardRepository {
+  @override
+  Future<Dashboard> getDashboard({
+    required DateTime date,
+    required String timezone,
+  }) async =>
+      Dashboard.fromJson({
+        'date': formatApiDate(date),
+        'timezone': timezone,
+        'weight': {'status': 'UNRECORDED', 'record': null},
+        'nutrition': {'status': 'UNRECORDED', 'record': null},
+        'symptom': {'status': 'UNRECORDED', 'record': null},
+        'injection': {
+          'status': 'UNRECORDED',
+          'record': null,
+          'next_scheduled_date': null,
+        },
+      });
 }

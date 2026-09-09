@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dietapp/core/config/api_config.dart';
 import 'package:dietapp/core/network/dio_provider.dart';
 import 'package:dietapp/main.dart';
 import 'package:flutter/material.dart';
@@ -6,11 +7,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('shows the placeholder home screen', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: DietApp()));
+  testWidgets('shows the dashboard home screen', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        apiConfigProvider.overrideWithValue(
+          ApiConfig(baseUrl: 'http://example.test'),
+        ),
+      ],
+      child: const DietApp(),
+    ));
 
-    expect(find.text('dietapp'), findsOneWidget);
-    expect(find.text('Health logging is ready to begin.'), findsOneWidget);
+    expect(find.text('ホーム'), findsOneWidget);
+    expect(find.byKey(const Key('dashboardScroll')), findsOneWidget);
   });
 
   testWidgets('navigates from record menu and validates the create form',

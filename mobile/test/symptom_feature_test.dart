@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:dietapp/core/config/api_config.dart';
 import 'package:dietapp/core/network/api_error.dart';
+import 'package:dietapp/core/network/dio_provider.dart';
 import 'package:dietapp/core/timezone/device_timezone.dart';
 import 'package:dietapp/features/symptom/data/symptom_repository.dart';
 import 'package:dietapp/features/symptom/domain/symptom.dart';
@@ -462,6 +464,9 @@ void main() {
       final repository = FakeSymptomRepository()
         ..listResults.add(Future.value([]));
       await tester.pumpWidget(ProviderScope(overrides: [
+        apiConfigProvider.overrideWithValue(
+          ApiConfig(baseUrl: 'http://example.test'),
+        ),
         symptomRepositoryProvider.overrideWithValue(repository),
         deviceTimezoneProvider.overrideWithValue(FakeDeviceTimezone('UTC')),
       ], child: const _RouterApp()));
