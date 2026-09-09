@@ -69,6 +69,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
             onDestinationSelected: (i) {
               if (i == 0) context.go('/');
               if (i == 1) context.go('/record');
+              if (i == 3) context.go('/settings');
             },
             destinations: const [
               NavigationDestination(icon: Icon(Icons.home), label: 'Home'),

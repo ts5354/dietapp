@@ -65,6 +65,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onDestinationSelected: (index) {
           if (index == 1) context.go('/record');
           if (index == 2) context.go('/history');
+          if (index == 3) context.go('/settings');
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
