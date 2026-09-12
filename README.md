@@ -51,10 +51,11 @@ flutter analyze
 flutter test
 ```
 
-The API base URL defaults to `http://localhost:8000/api/v1`. Override it at build time when needed:
+The API base URL is required at build/run time and is injected with
+`API_BASE_URL`:
 
 ```sh
-flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+flutter run --dart-define=API_BASE_URL=http://localhost:8000
 ```
 
 ## Docker Compose
@@ -68,7 +69,10 @@ docker compose up --build
 Once healthy, verify the API:
 
 ```sh
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/health
 ```
 
 The expected response is `{"status":"ok"}`. Development database credentials in Compose are local defaults, not production secrets.
+
+Production deployment, migration, health-check, and Flutter HTTPS connection
+procedures are documented in [`docs/deployment.md`](docs/deployment.md).
