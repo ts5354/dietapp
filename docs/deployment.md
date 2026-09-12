@@ -26,7 +26,10 @@ Configure these in the provider's secret/environment settings:
 | `PORT` | Usually | HTTP port assigned by the container platform; defaults to `8000` |
 
 `DATABASE_URL` must reference the production database, never the development
-Compose database. The application does not print this value.
+Compose database. Providers that supply the standard `postgresql://` scheme are
+accepted; the backend selects SQLAlchemy's installed psycopg 3 driver for that
+scheme. Explicit driver schemes and non-PostgreSQL URLs are left unchanged. The
+application does not print this value.
 
 ## Build and start
 
