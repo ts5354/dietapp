@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../screens/home_screen.dart';
 import '../features/nutrition/presentation/nutrition_screen.dart';
+import '../features/record/presentation/record_screen.dart';
 import '../features/history/presentation/history_screen.dart';
 import '../features/injection/presentation/injection_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
@@ -14,7 +15,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
           path: '/history', builder: (context, state) => const HistoryScreen()),
-      GoRoute(path: '/record', builder: (context, state) => const HomeScreen()),
+      GoRoute(
+          path: '/record', builder: (context, state) => const RecordScreen()),
       GoRoute(
           path: '/settings',
           builder: (context, state) => const SettingsScreen()),
