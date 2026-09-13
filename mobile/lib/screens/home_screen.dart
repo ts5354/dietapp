@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/dashboard/domain/dashboard.dart';
 import '../features/dashboard/providers/dashboard_provider.dart';
+import '../shared/presentation/category_icon.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -15,8 +16,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() =>
-        ref.read(dashboardControllerProvider.notifier).load(DateTime.now()));
+    Future.microtask(() {
+      if (!mounted) return;
+      final state = ref.read(dashboardControllerProvider);
+      final controller = ref.read(dashboardControllerProvider.notifier);
+      if (state.dashboard == null) {
+        controller.load(DateTime.now());
+      } else {
+        controller.refresh();
+      }
+    });
   }
 
   @override
@@ -32,48 +41,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
             ListTile(
-              title: const Text('日付'),
-              subtitle: Text(_dateLabel(state.date)),
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                _naturalDate(state.date),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              trailing: const Icon(Icons.calendar_today_outlined),
               onTap: state.mode == DashboardViewMode.loading
                   ? null
                   : () => _selectDate(state.date),
             ),
-            if (state.mode == DashboardViewMode.loading) ...[
-              const Center(child: CircularProgressIndicator()),
-              _RecordLinks(open: _open),
-            ] else if (state.mode == DashboardViewMode.error) ...[
-              Text(state.message ?? 'ホーム情報の取得中にエラーが発生しました。'),
-              FilledButton(
-                key: const Key('retryDashboardButton'),
-                onPressed:
-                    ref.read(dashboardControllerProvider.notifier).refresh,
-                child: const Text('再読み込み'),
+            if (state.dashboard case final dashboard?) ...[
+              if (state.mode == DashboardViewMode.error) ...[
+                Text(state.message ?? 'ホーム情報の更新中にエラーが発生しました。'),
+                TextButton(
+                  key: const Key('retryDashboardButton'),
+                  onPressed:
+                      ref.read(dashboardControllerProvider.notifier).refresh,
+                  child: const Text('再読み込み'),
+                ),
+              ],
+              _NextInjection(
+                dashboard.injection.nextScheduledDate,
+                state.date,
               ),
-              _RecordLinks(open: _open),
-            ] else if (state.dashboard case final dashboard?) ...[
+              const SizedBox(height: 24),
+              Text('今日の記録', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
               _WeightCard(dashboard.weight, () => _open('/record/weight')),
               _NutritionCard(dashboard.nutrition, () => _open('/record/food')),
               _SymptomCard(dashboard.symptom, () => _open('/record/symptom')),
               _InjectionCard(
                   dashboard.injection, () => _open('/record/injection')),
+            ] else if (state.mode == DashboardViewMode.loading) ...[
+              const Padding(
+                padding: EdgeInsets.only(top: 32),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ] else if (state.mode == DashboardViewMode.error) ...[
+              Text(state.message ?? 'ホーム情報の取得中にエラーが発生しました。'),
+              FilledButton(
+                key: const Key('retryDashboardButton'),
+                onPressed: () => ref
+                    .read(dashboardControllerProvider.notifier)
+                    .load(state.date),
+                child: const Text('再読み込み'),
+              ),
             ],
           ],
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: 0,
-        onDestinationSelected: (index) {
-          if (index == 1) context.go('/record');
-          if (index == 2) context.go('/history');
-          if (index == 3) context.go('/settings');
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(
-              icon: Icon(Icons.add_circle_outline), label: 'Record'),
-          NavigationDestination(icon: Icon(Icons.history), label: 'History'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
       ),
     );
   }
@@ -98,24 +114,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _RecordLinks extends StatelessWidget {
-  const _RecordLinks({required this.open});
-  final Future<void> Function(String path) open;
-  @override
-  Widget build(BuildContext context) => Column(children: [
-        const Text('記録する'),
-        FilledButton(
-            onPressed: () => open('/record/weight'), child: const Text('体重')),
-        FilledButton(
-            onPressed: () => open('/record/food'), child: const Text('食事')),
-        FilledButton(
-            onPressed: () => open('/record/symptom'), child: const Text('体調')),
-        FilledButton(
-            onPressed: () => open('/record/injection'),
-            child: const Text('注射')),
-      ]);
-}
-
 class _WeightCard extends StatelessWidget {
   const _WeightCard(this.section, this.open);
   final DashboardWeightSection section;
@@ -123,6 +121,7 @@ class _WeightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _SectionCard(
         title: '体重',
+        category: AppCategory.weight,
         actionKey: const Key('dashboardWeightAction'),
         action: section.record == null ? '記録する' : '記録を見る',
         open: open,
@@ -130,7 +129,7 @@ class _WeightCard extends StatelessWidget {
           if (section.record case final record?)
             Text('${_number(record.weightKg)} kg')
           else
-            const Text('この日の記録はありません。'),
+            const Text('未記録'),
         ],
       );
 }
@@ -144,12 +143,13 @@ class _NutritionCard extends StatelessWidget {
     final record = section.record;
     return _SectionCard(
       title: '食事',
+      category: AppCategory.food,
       actionKey: const Key('dashboardFoodAction'),
       action: record == null ? '記録する' : '記録を見る',
       open: open,
       children: [
         if (record == null)
-          const Text('この日の記録はありません。')
+          const Text('未記録')
         else if (record.mode == DashboardNutritionMode.freeDay) ...[
           const Text('Free Day'),
           const Text('この日は栄養計算を行わない日として記録されています。'),
@@ -171,20 +171,17 @@ class _SymptomCard extends StatelessWidget {
     final record = section.record;
     return _SectionCard(
       title: '体調',
+      category: AppCategory.symptom,
       actionKey: const Key('dashboardSymptomAction'),
       action: record == null ? '記録する' : '記録を見る',
       open: open,
       children: [
         if (record == null)
-          const Text('この日の記録はありません。')
+          const Text('未記録')
         else ...[
-          Text(TimeOfDay.fromDateTime(record.recordedAt.toLocal())
-              .format(context)),
-          Text('吐き気 ${record.nausea} / 腹痛 ${record.abdominalPain}'),
-          Text('だるさ ${record.fatigue} / 食欲 ${record.appetite}'),
-          if (record.bowelCondition case final bowel?)
-            Text('便通 ${_bowelLabel(bowel)}'),
-          const Text('強い症状や気になる変化がある場合は、医療機関へ相談してください。'),
+          Text(
+            '${TimeOfDay.fromDateTime(record.recordedAt.toLocal()).format(context)} 記録済み',
+          ),
         ],
       ],
     );
@@ -200,20 +197,66 @@ class _InjectionCard extends StatelessWidget {
     final record = section.record;
     return _SectionCard(
       title: '注射',
+      category: AppCategory.injection,
       actionKey: const Key('dashboardInjectionAction'),
       action: record == null ? '記録する' : '記録を見る',
       open: open,
       children: [
         if (record == null)
-          const Text('この日の記録はありません。')
+          const Text('未記録')
         else
-          Text('最新の記録日 ${_dateLabel(record.recordDate)}'),
-        if (section.nextScheduledDate case final next?) ...[
-          const Text('記録上の次回予定日'),
-          Text(_dateLabel(next), key: const Key('dashboardNextInjectionDate')),
-          const Text('実際の投与日は医療者の指示に従ってください。'),
-        ],
+          Text('${_naturalDate(record.recordDate)} 記録済み'),
       ],
+    );
+  }
+}
+
+class _NextInjection extends StatelessWidget {
+  const _NextInjection(this.date, this.dashboardDate);
+
+  final DateTime? date;
+  final DateTime dashboardDate;
+
+  @override
+  Widget build(BuildContext context) {
+    final next = date;
+    final days = next == null
+        ? null
+        : DateUtils.dateOnly(next)
+            .difference(DateUtils.dateOnly(dashboardDate))
+            .inDays;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppCategory.injection.color,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(children: [
+        const CategoryIcon(AppCategory.injection),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('次回の注射',
+                  style: TextStyle(fontWeight: FontWeight.w700)),
+              if (next == null)
+                const Text('予定はありません')
+              else
+                Text(
+                  _naturalDate(next),
+                  key: const Key('dashboardNextInjectionDate'),
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.w700),
+                ),
+              if (days != null && days >= 0)
+                Text(days == 0 ? '今日' : 'あと$days日'),
+              if (next != null) const Text('実際の投与日は医療者の指示に従ってください。'),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 }
@@ -221,46 +264,41 @@ class _InjectionCard extends StatelessWidget {
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
     required this.title,
+    required this.category,
     required this.actionKey,
     required this.action,
     required this.open,
     required this.children,
   });
   final String title;
+  final AppCategory category;
   final Key actionKey;
   final String action;
   final VoidCallback open;
   final List<Widget> children;
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+  Widget build(BuildContext context) => Column(children: [
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(vertical: 6),
+          leading: CategoryIcon(category),
+          title:
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-              ...children,
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                    key: actionKey, onPressed: open, child: Text(action)),
-              ),
-            ],
+            children: children,
           ),
+          trailing:
+              TextButton(key: actionKey, onPressed: open, child: Text(action)),
         ),
-      );
+        const Divider(),
+      ]);
 }
 
-String _dateLabel(DateTime date) =>
-    '${date.year}/${date.month.toString().padLeft(2, '0')}/${date.day.toString().padLeft(2, '0')}';
+String _naturalDate(DateTime date) {
+  const weekdays = ['月', '火', '水', '木', '金', '土', '日'];
+  return '${date.month}月${date.day}日（${weekdays[date.weekday - 1]}）';
+}
 
 String _number(num value) => value == value.roundToDouble()
     ? value.toInt().toString()
     : value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
-
-String _bowelLabel(DashboardBowelCondition value) => switch (value) {
-      DashboardBowelCondition.normal => '通常',
-      DashboardBowelCondition.constipation => '便秘',
-      DashboardBowelCondition.diarrhea => '下痢',
-      DashboardBowelCondition.other => 'その他',
-    };

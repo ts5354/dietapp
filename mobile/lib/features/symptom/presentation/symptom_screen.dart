@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/symptom.dart';
 import '../providers/symptom_provider.dart';
+import '../../../shared/presentation/category_icon.dart';
 
 class SymptomScreen extends ConsumerStatefulWidget {
   const SymptomScreen({super.key});
@@ -22,7 +23,7 @@ class _SymptomScreenState extends ConsumerState<SymptomScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(symptomControllerProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('体調記録')),
+      appBar: AppBar(title: const CategoryTitle(AppCategory.symptom, '体調記録')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         ListTile(
           title: const Text('日付'),

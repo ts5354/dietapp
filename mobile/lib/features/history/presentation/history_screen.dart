@@ -1,7 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../injection/domain/injection.dart';
 import '../../nutrition/domain/nutrition.dart';
@@ -64,22 +63,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
           _SymptomHistory(),
           _InjectionHistory()
         ]),
-        bottomNavigationBar: NavigationBar(
-            selectedIndex: 2,
-            onDestinationSelected: (i) {
-              if (i == 0) context.go('/');
-              if (i == 1) context.go('/record');
-              if (i == 3) context.go('/settings');
-            },
-            destinations: const [
-              NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-              NavigationDestination(
-                  icon: Icon(Icons.add_circle_outline), label: 'Record'),
-              NavigationDestination(
-                  icon: Icon(Icons.history), label: 'History'),
-              NavigationDestination(
-                  icon: Icon(Icons.settings), label: 'Settings'),
-            ]),
       );
 }
 
@@ -108,7 +91,7 @@ class _WeightHistory extends ConsumerWidget {
                       .read(historyControllerProvider.notifier)
                       .loadWeight(range: v.single)),
               const SizedBox(height: 16),
-              _WeightBody(state.weights),
+              _WeightBody(state.weights, state.range),
               if (state.weights.hasMore)
                 TextButton(
                     key: const Key('weightLoadMore'),
@@ -124,8 +107,9 @@ class _WeightHistory extends ConsumerWidget {
 }
 
 class _WeightBody extends StatelessWidget {
-  const _WeightBody(this.state);
+  const _WeightBody(this.state, this.range);
   final HistoryListState<WeightRecord> state;
+  final WeightRange range;
   @override
   Widget build(BuildContext context) {
     if (state.mode == HistoryLoadMode.loading) {
@@ -142,51 +126,80 @@ class _WeightBody extends StatelessWidget {
     final chart = oldestFirst(state.items);
     final min = chart.map((e) => e.weightKg).reduce((a, b) => a < b ? a : b);
     final max = chart.map((e) => e.weightKg).reduce((a, b) => a > b ? a : b);
+    final axis = weightYAxis(min, max);
+    final firstDate = chart.first.recordDate;
+    final maxX = chart.last.recordDate.difference(firstDate).inDays.toDouble();
     return Column(children: [
       SizedBox(
           height: 220,
           child: LineChart(LineChartData(
-              minY: min - 1,
-              maxY: max + 1,
+              minX: 0,
+              maxX: maxX == 0 ? 1 : maxX,
+              minY: axis.min,
+              maxY: axis.max,
+              gridData: FlGridData(
+                drawVerticalLine: false,
+                horizontalInterval: axis.interval,
+                getDrawingHorizontalLine: (_) => const FlLine(
+                  color: Color(0xFFE4ECE9),
+                  strokeWidth: 1,
+                ),
+              ),
+              borderData: FlBorderData(show: false),
               lineTouchData: LineTouchData(
+                  touchSpotThreshold: 24,
                   touchTooltipData: LineTouchTooltipData(
                       getTooltipItems: (spots) => spots.map((spot) {
-                            final item = chart[spot.x.toInt()];
+                            final item = chart[spot.spotIndex];
                             return LineTooltipItem(
-                                '${item.recordDate.month}/${item.recordDate.day}\n${formatWeight(item.weightKg)} kg',
+                                '${item.recordDate.month}月${item.recordDate.day}日\n${formatWeight(item.weightKg)} kg',
                                 const TextStyle(color: Colors.white));
                           }).toList())),
               lineBarsData: [
-                LineChartBarData(spots: [
-                  for (var i = 0; i < chart.length; i++)
-                    FlSpot(i.toDouble(), chart[i].weightKg)
-                ], isCurved: false, dotData: const FlDotData(show: true))
+                LineChartBarData(
+                    spots: [
+                      for (final item in chart)
+                        FlSpot(
+                          item.recordDate
+                              .difference(firstDate)
+                              .inDays
+                              .toDouble(),
+                          item.weightKg,
+                        )
+                    ],
+                    color: Theme.of(context).colorScheme.primary,
+                    barWidth: 3,
+                    isCurved: false,
+                    dotData: const FlDotData(show: true))
               ],
               titlesData: FlTitlesData(
                   topTitles: const AxisTitles(),
                   rightTitles: const AxisTitles(),
+                  leftTitles: AxisTitles(
+                    axisNameWidget: const Text('kg'),
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 42,
+                      interval: axis.interval,
+                    ),
+                  ),
                   bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                           showTitles: true,
-                          interval: chart.length > 7
-                              ? (chart.length / 6).ceilToDouble()
-                              : 1,
+                          interval: weightXAxisInterval(range),
                           getTitlesWidget: (value, meta) {
-                            final index = value.toInt();
-                            if (index < 0 ||
-                                index >= chart.length ||
-                                value != index) {
-                              return const SizedBox.shrink();
-                            }
-                            final date = chart[index].recordDate;
+                            final date =
+                                firstDate.add(Duration(days: value.toInt()));
                             return SideTitleWidget(
                                 meta: meta,
                                 child: Text('${date.month}/${date.day}'));
                           })))))),
-      for (final item in state.items)
+      for (final item in state.items) ...[
         ListTile(
             title: Text('${item.recordDate.month}/${item.recordDate.day}'),
             trailing: Text('${formatWeight(item.weightKg)} kg')),
+        const Divider(),
+      ],
     ]);
   }
 }
@@ -232,7 +245,7 @@ class _InjectionHistory extends ConsumerWidget {
       retry: ref.read(historyControllerProvider.notifier).loadInjections,
       loadMore: ref.read(historyControllerProvider.notifier).loadMoreInjections,
       empty: '注射記録はありません。',
-      footer: const Text('doseや実際の投与日は、医療者の指示に従ってください。'),
+      footer: const Text('用量や実際の投与日は、医療者の指示に従ってください。'),
       item: (i) => ListTile(
           title: Text(
               '${i.recordDate.month}/${i.recordDate.day} ${TimeOfDay.fromDateTime(i.injectedAt.toLocal()).format(context)}'),
@@ -271,7 +284,10 @@ class _HistoryList<T> extends StatelessWidget {
               if (state.items.isEmpty)
                 Text(empty)
               else
-                for (final value in state.items) item(value),
+                for (final value in state.items) ...[
+                  item(value),
+                  const Divider(),
+                ],
               if (state.hasMore)
                 TextButton(
                     onPressed: state.loadingMore ? null : loadMore,
@@ -295,3 +311,28 @@ class _Error extends StatelessWidget {
 String formatWeight(num value) => value == value.roundToDouble()
     ? value.toInt().toString()
     : value.toStringAsFixed(1);
+
+double weightXAxisInterval(WeightRange range) => switch (range) {
+      WeightRange.sevenDays => 1,
+      WeightRange.thirtyDays => 7,
+      WeightRange.threeMonths => 14,
+    };
+
+class WeightYAxis {
+  const WeightYAxis(this.min, this.max, this.interval);
+
+  final double min;
+  final double max;
+  final double interval;
+}
+
+WeightYAxis weightYAxis(double minimum, double maximum) {
+  const interval = 2.0;
+  var min = (minimum / interval).floor() * interval;
+  var max = (maximum / interval).ceil() * interval;
+  if (max - min < 4) {
+    min -= interval;
+    max += interval;
+  }
+  return WeightYAxis(min, max, interval);
+}

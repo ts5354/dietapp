@@ -58,6 +58,22 @@ void main() {
     expect(newestFirst.first.recordDate.day, 9);
   });
 
+  test('chart axis intervals and rounded weight range remain readable', () {
+    expect(weightXAxisInterval(WeightRange.sevenDays), 1);
+    expect(weightXAxisInterval(WeightRange.thirtyDays), 7);
+    expect(weightXAxisInterval(WeightRange.threeMonths), 14);
+
+    final varied = weightYAxis(79.1, 83.4);
+    expect(varied.min, lessThanOrEqualTo(79.1));
+    expect(varied.max, greaterThanOrEqualTo(83.4));
+    expect(varied.interval, 2);
+
+    final single = weightYAxis(80.2, 80.2);
+    expect(single.min, lessThan(80.2));
+    expect(single.max, greaterThan(80.2));
+    expect(single.max - single.min, greaterThanOrEqualTo(4));
+  });
+
   test('repository sends authoritative paths, filters and pagination',
       () async {
     final requests = <RequestOptions>[];
@@ -218,6 +234,14 @@ void main() {
     await pumpHistory(tester, fake);
     expect(find.byType(LineChart), findsOneWidget);
     expect(find.text('62.3 kg'), findsOneWidget);
+    final chartWidget = tester.widget<LineChart>(find.byType(LineChart));
+    final chartData = chartWidget.data;
+    final bar = chartData.lineBarsData.single;
+    final tooltipItems = chartData.lineTouchData.touchTooltipData
+        .getTooltipItems([LineBarSpot(bar, 0, bar.spots.single)]);
+    expect(chartData.lineTouchData.touchSpotThreshold, 24);
+    expect(tooltipItems.single!.text, contains('9月9日'));
+    expect(tooltipItems.single!.text, contains('62.3 kg'));
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump();

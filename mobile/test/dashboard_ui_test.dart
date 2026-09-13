@@ -223,11 +223,11 @@ void main() {
       expect(find.text('ホーム'), findsOneWidget);
       expect(find.text('62.3 kg'), findsOneWidget);
       expect(find.text('1800 kcal'), findsOneWidget);
-      expect(find.textContaining('吐き気 2'), findsOneWidget);
+      expect(find.textContaining('記録済み'), findsWidgets);
       await tester.drag(
           find.byKey(const Key('dashboardScroll')), const Offset(0, -500));
       await tester.pumpAndSettle();
-      expect(find.text('最新の記録日 2026/09/08'), findsOneWidget);
+      expect(find.text('9月8日（火） 記録済み'), findsOneWidget);
       expect(
           find.byKey(const Key('dashboardNextInjectionDate')), findsOneWidget);
       expect(find.textContaining('医療者の指示'), findsOneWidget);
@@ -239,7 +239,7 @@ void main() {
     testWidgets('renders unrecorded and free day without fabricated totals',
         (tester) async {
       await pumpHome(tester, dashboard(recorded: false));
-      expect(find.text('この日の記録はありません。'), findsNWidgets(4));
+      expect(find.text('未記録'), findsNWidgets(4));
       expect(find.byKey(const Key('dashboardNextInjectionDate')), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
@@ -261,6 +261,8 @@ void main() {
       await pumpHomeWithRepository(tester, repository, settle: false);
       await tester.pump();
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('記録する'), findsNothing);
+      expect(find.text('体重'), findsNothing);
       pending.completeError(const ApiException(
         kind: ApiErrorKind.network,
         message: 'offline',
@@ -268,6 +270,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('サーバーに接続できませんでした。'), findsOneWidget);
       expect(find.text('この日の記録はありません。'), findsNothing);
+      expect(find.text('記録する'), findsNothing);
+      expect(find.text('未記録'), findsNothing);
       repository.responses.add(Future.value(dashboard()));
       await tester.tap(find.byKey(const Key('retryDashboardButton')));
       await tester.pumpAndSettle();

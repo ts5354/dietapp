@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/nutrition.dart';
 import '../providers/nutrition_provider.dart';
+import '../../../shared/presentation/category_icon.dart';
 
 class NutritionScreen extends ConsumerStatefulWidget {
   const NutritionScreen({super.key});
@@ -24,7 +25,7 @@ class _NutritionScreenState extends ConsumerState<NutritionScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(nutritionControllerProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('食事記録')),
+      appBar: AppBar(title: const CategoryTitle(AppCategory.food, '食事記録')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

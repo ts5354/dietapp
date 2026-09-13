@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/weight.dart';
 import '../providers/weight_provider.dart';
+import '../../../shared/presentation/category_icon.dart';
 
 class WeightScreen extends ConsumerStatefulWidget {
   const WeightScreen({super.key});
@@ -41,7 +42,8 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
       },
     );
     return Scaffold(
-        appBar: AppBar(title: Text(edit ? '体重を編集' : '体重を記録')),
+        appBar: AppBar(
+            title: CategoryTitle(AppCategory.weight, edit ? '体重を編集' : '体重を記録')),
         body: Padding(
             padding: const EdgeInsets.all(16),
             child: ListView(children: [
@@ -127,8 +129,8 @@ class _WeightScreenState extends ConsumerState<WeightScreen> {
                   child: Text(state.busy
                       ? '処理中…'
                       : edit
-                          ? '更新'
-                          : '保存')),
+                          ? '更新する'
+                          : '保存する')),
               if (edit)
                 TextButton(
                     style: TextButton.styleFrom(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/presentation/category_icon.dart';
+
 class RecordScreen extends StatelessWidget {
   const RecordScreen({super.key});
 
@@ -9,46 +11,30 @@ class RecordScreen extends StatelessWidget {
         appBar: AppBar(title: const Text('記録')),
         body: ListView(
           padding: const EdgeInsets.all(16),
-          children: [
+          children: const [
             _RecordDestination(
-              icon: Icons.monitor_weight_outlined,
+              category: AppCategory.weight,
               label: '体重',
-              onTap: () => context.push('/record/weight'),
+              description: '今日の体重を記録',
+              route: '/record/weight',
             ),
             _RecordDestination(
-              icon: Icons.restaurant_outlined,
+              category: AppCategory.food,
               label: '食事',
-              onTap: () => context.push('/record/food'),
+              description: '食べたものを記録',
+              route: '/record/food',
             ),
             _RecordDestination(
-              icon: Icons.health_and_safety_outlined,
+              category: AppCategory.symptom,
               label: '体調',
-              onTap: () => context.push('/record/symptom'),
+              description: '今日の状態を記録',
+              route: '/record/symptom',
             ),
             _RecordDestination(
-              icon: Icons.vaccines_outlined,
+              category: AppCategory.injection,
               label: '注射',
-              onTap: () => context.push('/record/injection'),
-            ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: 1,
-          onDestinationSelected: (index) {
-            if (index == 0) context.go('/');
-            if (index == 2) context.go('/history');
-            if (index == 3) context.go('/settings');
-          },
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(
-              icon: Icon(Icons.add_circle_outline),
-              label: 'Record',
-            ),
-            NavigationDestination(icon: Icon(Icons.history), label: 'History'),
-            NavigationDestination(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
+              description: '注射の記録',
+              route: '/record/injection',
             ),
           ],
         ),
@@ -57,22 +43,26 @@ class RecordScreen extends StatelessWidget {
 
 class _RecordDestination extends StatelessWidget {
   const _RecordDestination({
-    required this.icon,
+    required this.category,
     required this.label,
-    required this.onTap,
+    required this.description,
+    required this.route,
   });
 
-  final IconData icon;
+  final AppCategory category;
   final String label;
-  final VoidCallback onTap;
+  final String description;
+  final String route;
 
   @override
   Widget build(BuildContext context) => Card(
         child: ListTile(
-          leading: Icon(icon),
+          minVerticalPadding: 14,
+          leading: CategoryIcon(category),
           title: Text(label),
+          subtitle: Text(description),
           trailing: const Icon(Icons.chevron_right),
-          onTap: onTap,
+          onTap: () => context.push(route),
         ),
       );
 }

@@ -470,7 +470,7 @@ void main() {
         ..latest.add(Future.value(record(today)));
       await tester.pumpAndSettle();
       expect(fake.mutations, 1);
-      expect(find.text('更新'), findsOneWidget);
+      expect(find.text('更新する'), findsOneWidget);
       expect(find.byKey(const Key('nextInjectionDate')), findsOneWidget);
     });
 
@@ -486,6 +486,8 @@ void main() {
         ],
         child: const _RouterApp(),
       ));
+      await tester.tap(find.text('Record'));
+      await tester.pumpAndSettle();
       expect(find.text('体重'), findsOneWidget);
       expect(find.text('食事'), findsOneWidget);
       expect(find.text('体調'), findsOneWidget);

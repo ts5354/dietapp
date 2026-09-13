@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/injection.dart';
 import '../providers/injection_provider.dart';
+import '../../../shared/presentation/category_icon.dart';
 
 class InjectionScreen extends ConsumerStatefulWidget {
   const InjectionScreen({super.key});
@@ -49,7 +50,7 @@ class _InjectionScreenState extends ConsumerState<InjectionScreen> {
       },
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('注射記録')),
+      appBar: AppBar(title: const CategoryTitle(AppCategory.injection, '注射記録')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         ListTile(
           title: const Text('日付'),
@@ -116,9 +117,9 @@ class _InjectionScreenState extends ConsumerState<InjectionScreen> {
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
             ],
             decoration: const InputDecoration(
-                labelText: 'dose',
+                labelText: '用量（mg）',
                 suffixText: 'mg',
-                helperText: '医療者から指示されたdoseを入力してください'),
+                helperText: '医療者から指示された用量を入力してください'),
           ),
           DropdownButtonFormField<InjectionSite>(
             key: const Key('injectionSiteField'),
@@ -147,8 +148,8 @@ class _InjectionScreenState extends ConsumerState<InjectionScreen> {
             child: Text(state.busy
                 ? '処理中…'
                 : edit
-                    ? '更新'
-                    : '保存'),
+                    ? '更新する'
+                    : '保存する'),
           ),
           if (edit)
             TextButton(
@@ -156,7 +157,7 @@ class _InjectionScreenState extends ConsumerState<InjectionScreen> {
               onPressed: state.busy ? null : _confirmDelete,
               child: const Text('記録を削除'),
             ),
-          const Text('doseや実際の投与日は、医療者の指示に従ってください。'),
+          const Text('用量や実際の投与日は、医療者の指示に従ってください。'),
         ],
       ]),
     );

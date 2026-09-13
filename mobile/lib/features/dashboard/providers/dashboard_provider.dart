@@ -53,7 +53,7 @@ class DashboardState {
 }
 
 final dashboardControllerProvider =
-    StateNotifierProvider.autoDispose<DashboardController, DashboardState>(
+    StateNotifierProvider<DashboardController, DashboardState>(
         (ref) => DashboardController(
               ref.watch(dashboardRepositoryProvider),
               ref.watch(deviceTimezoneProvider),

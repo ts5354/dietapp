@@ -38,15 +38,17 @@ void main() {
       child: const DietApp(),
     ));
 
+    await tester.tap(find.text('Record'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('体重'));
     await tester.pumpAndSettle();
 
     expect(find.text('体重を記録'), findsOneWidget);
     expect(find.byKey(const Key('weightField')), findsOneWidget);
     expect(find.text('メモ（任意）'), findsOneWidget);
-    expect(find.text('保存'), findsOneWidget);
+    expect(find.text('保存する'), findsOneWidget);
     expect(find.text('記録を削除'), findsNothing);
-    await tester.tap(find.text('保存'));
+    await tester.tap(find.text('保存する'));
     await tester.pump();
     expect(find.text('体重を入力してください'), findsOneWidget);
   });
@@ -74,6 +76,8 @@ void main() {
       overrides: [dioProvider.overrideWithValue(dio)],
       child: const DietApp(),
     ));
+    await tester.tap(find.text('Record'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('体重'));
     await tester.pumpAndSettle();
     expect(find.text('体重を編集'), findsOneWidget);
@@ -95,6 +99,6 @@ void main() {
     await tester.tap(find.text('削除'));
     await tester.pumpAndSettle();
     expect(deletes, 1);
-    expect(find.text('保存'), findsOneWidget);
+    expect(find.text('保存する'), findsOneWidget);
   });
 }

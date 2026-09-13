@@ -9,14 +9,12 @@ import 'package:dietapp/features/history/domain/history.dart';
 import 'package:dietapp/features/history/providers/history_provider.dart';
 import 'package:dietapp/features/injection/domain/injection.dart';
 import 'package:dietapp/features/nutrition/domain/nutrition.dart';
-import 'package:dietapp/features/settings/presentation/settings_screen.dart';
 import 'package:dietapp/features/symptom/domain/symptom.dart';
 import 'package:dietapp/features/weight/domain/weight.dart';
 import 'package:dietapp/routing/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 
 void main() {
   testWidgets('/settings renders static, neutral settings content',
@@ -67,22 +65,25 @@ void main() {
 
   testWidgets('Settings navigation reaches Home, Record and History',
       (tester) async {
-    final router = _navigationRouter('/settings');
-    addTearDown(router.dispose);
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await tester.pumpAndSettle();
-
     for (final destination in <String, String>{
       'Home': '/',
       'Record': '/record',
       'History': '/history',
     }.entries) {
-      router.go('/settings');
-      await tester.pump();
-      await tester.pump();
-      await tester.tap(find.text(destination.key).last);
+      final container = ProviderContainer(overrides: [
+        dashboardRepositoryProvider.overrideWithValue(_PendingDashboard()),
+        deviceTimezoneProvider.overrideWithValue(_FakeTimezone()),
+        historyRepositoryProvider.overrideWithValue(_PendingHistory()),
+      ]);
+      final router = container.read(appRouterProvider)..go('/settings');
+      await tester.pumpWidget(UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router)));
       await tester.pumpAndSettle();
-      expect(find.byKey(ValueKey(destination.value)), findsOneWidget);
+      await tester.tap(find.text(destination.key));
+      await tester.pump();
+      expect(router.routeInformationProvider.value.uri.path, destination.value);
+      container.dispose();
     }
   });
 
@@ -106,51 +107,6 @@ void main() {
       container.dispose();
     }
   });
-}
-
-GoRouter _navigationRouter(String initialLocation) => GoRouter(
-      initialLocation: initialLocation,
-      routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, __) => const _NavigationHost(selectedIndex: 0),
-        ),
-        GoRoute(
-          path: '/record',
-          builder: (_, __) => const SizedBox(key: ValueKey('/record')),
-        ),
-        GoRoute(
-          path: '/history',
-          builder: (_, __) => const _NavigationHost(selectedIndex: 2),
-        ),
-        GoRoute(
-          path: '/settings',
-          builder: (_, __) => const SettingsScreen(),
-        ),
-      ],
-    );
-
-class _NavigationHost extends StatelessWidget {
-  const _NavigationHost({required this.selectedIndex});
-  final int selectedIndex;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        key: ValueKey(selectedIndex == 0 ? '/' : '/history'),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) {
-            if (index == 3) context.go('/settings');
-          },
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.add), label: 'Record'),
-            NavigationDestination(icon: Icon(Icons.history), label: 'History'),
-            NavigationDestination(
-                icon: Icon(Icons.settings), label: 'Settings'),
-          ],
-        ),
-      );
 }
 
 class _FakeTimezone implements DeviceTimezone {
