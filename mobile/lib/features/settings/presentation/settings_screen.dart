@@ -53,7 +53,7 @@ class SettingsScreen extends StatelessWidget {
               ),
               _SettingsSection(
                 title: 'アプリ情報',
-                children: [ListTile(title: Text('dietapp'))],
+                children: [ListTile(title: Text('ダイエット男'))],
               ),
             ],
           ),

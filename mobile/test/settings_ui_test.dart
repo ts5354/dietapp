@@ -37,7 +37,7 @@ void main() {
       '注射',
       '医療上の注意',
       'アプリ情報',
-      'dietapp',
+      'ダイエット男',
     ]) {
       expect(find.text(text, skipOffstage: false), findsOneWidget);
     }

@@ -14,7 +14,7 @@ class DietApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'dietapp',
+      title: 'ダイエット男',
       theme: buildAppTheme(),
       routerConfig: ref.watch(appRouterProvider),
     );
