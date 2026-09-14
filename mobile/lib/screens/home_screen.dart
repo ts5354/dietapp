@@ -88,7 +88,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Column(children: [
-                  _WeightCard(dashboard.weight, () => _open('/record/weight')),
+                  _WeightCard(
+                    dashboard.weight,
+                    dashboard.date,
+                    () => _open('/record/weight'),
+                  ),
                   _NutritionCard(
                       dashboard.nutrition, () => _open('/record/food')),
                   _SymptomCard(
@@ -160,23 +164,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _WeightCard extends StatelessWidget {
-  const _WeightCard(this.section, this.open);
+  const _WeightCard(this.section, this.dashboardDate, this.open);
   final DashboardWeightSection section;
+  final DateTime dashboardDate;
   final VoidCallback open;
   @override
-  Widget build(BuildContext context) => _SectionCard(
-        title: '体重',
-        category: AppCategory.weight,
-        actionKey: const Key('dashboardWeightAction'),
-        action: section.record == null ? '記録する' : '記録を見る',
-        open: open,
-        children: [
-          if (section.record case final record?)
-            Text('${_number(record.weightKg)} kg')
-          else
-            const Text('この日の記録はありません'),
-        ],
-      );
+  Widget build(BuildContext context) {
+    final record = section.record;
+    final recordForDay = record != null &&
+            record.recordDate.year == dashboardDate.year &&
+            record.recordDate.month == dashboardDate.month &&
+            record.recordDate.day == dashboardDate.day
+        ? record
+        : null;
+    return _SectionCard(
+      title: '体重',
+      category: AppCategory.weight,
+      actionKey: const Key('dashboardWeightAction'),
+      action: recordForDay == null ? '記録する' : '記録を見る',
+      open: open,
+      children: [
+        if (recordForDay != null)
+          Text('${_number(recordForDay.weightKg)} kg')
+        else
+          const Text('この日の記録はありません'),
+      ],
+    );
+  }
 }
 
 class _NutritionCard extends StatelessWidget {

@@ -178,6 +178,20 @@ def test_weight_accepts_snapshot_day_and_has_unrecorded_before_first(
     assert _get(client, "2026-09-06").json()["weight"]["status"] == "UNRECORDED"
 
 
+def test_weight_prefers_snapshot_day_over_an_earlier_record(
+    client: TestClient, migrated_database: Engine
+) -> None:
+    with Session(migrated_database) as session:
+        _weight(session, date(2026, 9, 6), "80.0")
+        _weight(session, date(2026, 9, 7), "79.5")
+        session.commit()
+
+    assert _get(client).json()["weight"] == {
+        "status": "RECORDED",
+        "record": {"record_date": "2026-09-07", "weight_kg": 79.5},
+    }
+
+
 def test_normal_nutrition_sums_food_and_omits_food_list(
     client: TestClient, migrated_database: Engine
 ) -> None:

@@ -15,6 +15,8 @@ Map<String, dynamic> snapshot({
   String date = '2026-09-08',
   String timezone = 'America/New_York',
   bool recorded = true,
+  String? weightRecordDate,
+  double weightKg = 62.3,
   String nutritionMode = 'NORMAL',
   bool nextDate = true,
 }) =>
@@ -24,7 +26,10 @@ Map<String, dynamic> snapshot({
       'weight': recorded
           ? {
               'status': 'RECORDED',
-              'record': {'record_date': date, 'weight_kg': 62.3},
+              'record': {
+                'record_date': weightRecordDate ?? date,
+                'weight_kg': weightKg,
+              },
             }
           : {'status': 'UNRECORDED', 'record': null},
       'nutrition': recorded
@@ -351,6 +356,48 @@ void main() {
       expect(find.text('0 g'), findsNothing);
     });
 
+    testWidgets('weight card only presents a record from the dashboard date',
+        (tester) async {
+      await pumpHome(
+        tester,
+        Dashboard.fromJson(snapshot(
+          date: '2026-09-14',
+          weightRecordDate: '2026-09-13',
+          weightKg: 80,
+        )),
+      );
+
+      expect(find.text('80 kg'), findsNothing);
+      expect(find.text('この日の記録はありません'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('dashboardWeightAction')),
+          matching: find.text('記録する'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+      await pumpHome(
+        tester,
+        Dashboard.fromJson(snapshot(
+          date: '2026-09-14',
+          weightRecordDate: '2026-09-14',
+          weightKg: 79.5,
+        )),
+      );
+
+      expect(find.text('79.5 kg'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('dashboardWeightAction')),
+          matching: find.text('記録を見る'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('loading, error and retry are distinct from unrecorded',
         (tester) async {
       final repository = FakeDashboardRepository();
@@ -417,10 +464,21 @@ class FakeDashboardRepository implements DashboardRepository {
     timezones.add(timezone);
     final response = await responses.removeAt(0);
     if (!alignResponseDateToRequest) return response;
+    final weightRecord = response.weight.record;
+    final weight =
+        weightRecord != null && weightRecord.recordDate == response.date
+            ? DashboardWeightSection(
+                DashboardSectionStatus.recorded,
+                DashboardWeightRecord(
+                  DateTime(date.year, date.month, date.day),
+                  weightRecord.weightKg,
+                ),
+              )
+            : response.weight;
     return Dashboard(
       DateTime(date.year, date.month, date.day),
       response.timezone,
-      response.weight,
+      weight,
       response.nutrition,
       response.symptom,
       response.injection,
