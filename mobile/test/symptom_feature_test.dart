@@ -470,7 +470,7 @@ void main() {
         symptomRepositoryProvider.overrideWithValue(repository),
         deviceTimezoneProvider.overrideWithValue(FakeDeviceTimezone('UTC')),
       ], child: const _RouterApp()));
-      await tester.tap(find.text('Record'));
+      await tester.tap(find.text('記録'));
       await tester.pumpAndSettle();
       expect(find.text('体重'), findsOneWidget);
       expect(find.text('食事'), findsOneWidget);

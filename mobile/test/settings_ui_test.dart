@@ -27,7 +27,6 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final text in [
-      '設定',
       '表示・単位',
       '体重の単位',
       'kg（固定）',
@@ -42,6 +41,8 @@ void main() {
     ]) {
       expect(find.text(text, skipOffstage: false), findsOneWidget);
     }
+    expect(find.descendant(of: find.byType(AppBar), matching: find.text('設定')),
+        findsOneWidget);
     expect(find.textContaining('医療者の指示', skipOffstage: false), findsOneWidget);
     expect(find.textContaining('診断や治療方針', skipOffstage: false), findsOneWidget);
     final navigation = tester.widget<NavigationBar>(find.byType(NavigationBar));
@@ -66,9 +67,9 @@ void main() {
   testWidgets('Settings navigation reaches Home, Record and History',
       (tester) async {
     for (final destination in <String, String>{
-      'Home': '/',
-      'Record': '/record',
-      'History': '/history',
+      'ホーム': '/',
+      '記録': '/record',
+      '履歴': '/history',
     }.entries) {
       final container = ProviderContainer(overrides: [
         dashboardRepositoryProvider.overrideWithValue(_PendingDashboard()),
@@ -101,9 +102,11 @@ void main() {
           child: MaterialApp.router(routerConfig: router)));
       await tester.pump();
       await tester.pump();
-      await tester.tap(find.text('Settings'));
+      await tester.tap(find.text('設定'));
       await tester.pumpAndSettle();
-      expect(find.text('設定'), findsOneWidget);
+      expect(
+          find.descendant(of: find.byType(AppBar), matching: find.text('設定')),
+          findsOneWidget);
       container.dispose();
     }
   });

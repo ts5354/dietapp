@@ -490,7 +490,7 @@ void main() {
         nutritionRepositoryProvider.overrideWithValue(fake),
         weightRepositoryProvider.overrideWithValue(_MissingWeightRepository()),
       ], child: const TestRouterApp()));
-      await tester.tap(find.text('Record'));
+      await tester.tap(find.text('記録'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('食事'));
       await tester.pumpAndSettle();
@@ -498,7 +498,7 @@ void main() {
       final context = tester.element(find.byType(NutritionScreen));
       ProviderScope.containerOf(context).read(appRouterProvider).go('/');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Record'));
+      await tester.tap(find.text('記録'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('体重'));
       await tester.pumpAndSettle();

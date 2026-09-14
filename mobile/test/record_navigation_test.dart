@@ -28,15 +28,15 @@ import 'package:go_router/go_router.dart';
 void main() {
   testWidgets('Home round trips keep data visible and refresh from every tab',
       (tester) async {
-    for (final destination in ['History', 'Record', 'Settings']) {
+    for (final destination in ['履歴', '記録', '設定']) {
       final repository = _LifecycleDashboard();
       final fixture = await _pumpApp(tester, '/', dashboard: repository);
       await tester.pumpAndSettle();
       expect(find.text('62.3 kg'), findsOneWidget);
 
-      await tester.tap(find.text(destination));
+      await _tapDestination(tester, destination);
       await _finishRouteTransition(tester);
-      await tester.tap(find.text('Home'));
+      await _tapDestination(tester, 'ホーム');
       await _finishRouteTransition(tester);
 
       expect(repository.calls, 2);
@@ -56,9 +56,9 @@ void main() {
     final fixture = await _pumpApp(tester, '/', dashboard: repository);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Settings'));
+    await _tapDestination(tester, '設定');
     await _finishRouteTransition(tester);
-    await tester.tap(find.text('Home'));
+    await _tapDestination(tester, 'ホーム');
     await _finishRouteTransition(tester);
     repository.refresh.completeError(const ApiException(
       kind: ApiErrorKind.network,
@@ -76,12 +76,29 @@ void main() {
       (tester) async {
     final fixture = await _pumpApp(tester, '/');
 
-    await tester.tap(find.text('Record'));
+    await _tapDestination(tester, '記録');
     await tester.pumpAndSettle();
 
     expect(fixture.router.routeInformationProvider.value.uri.path, '/record');
     expect(find.byType(RecordScreen), findsOneWidget);
-    expect(find.text('記録'), findsOneWidget);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.text('記録')),
+        findsOneWidget);
+    fixture.dispose();
+  });
+
+  testWidgets('Home primary record button opens the Record screen',
+      (tester) async {
+    final repository = _LifecycleDashboard();
+    final fixture = await _pumpApp(tester, '/', dashboard: repository);
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+        find.byKey(const Key('homeRecordButton')), 300);
+    await tester.tap(find.byKey(const Key('homeRecordButton')));
+    await _finishRouteTransition(tester);
+
+    expect(fixture.router.routeInformationProvider.value.uri.path, '/record');
+    expect(find.byType(RecordScreen), findsOneWidget);
     fixture.dispose();
   });
 
@@ -91,12 +108,12 @@ void main() {
     final navigationElement = tester.element(find.byType(NavigationBar));
 
     for (final destination in <String, int>{
-      'Home': 0,
-      'Record': 1,
-      'History': 2,
-      'Settings': 3,
+      'ホーム': 0,
+      '記録': 1,
+      '履歴': 2,
+      '設定': 3,
     }.entries) {
-      await tester.tap(find.text(destination.key));
+      await _tapDestination(tester, destination.key);
       await _finishRouteTransition(tester);
       expect(find.byType(NavigationBar), findsOneWidget);
       expect(
@@ -121,7 +138,7 @@ void main() {
     expect(Navigator.of(tester.element(find.byType(RecordScreen))).canPop(),
         isFalse);
 
-    await tester.tap(find.text('Record'));
+    await _tapDestination(tester, '記録');
     await tester.pump();
 
     expect(fixture.router.routeInformationProvider.value.uri.path, '/record');
@@ -132,13 +149,13 @@ void main() {
 
   testWidgets('Record navigates to Home, History and Settings', (tester) async {
     for (final destination in <String, String>{
-      'Home': '/',
-      'History': '/history',
-      'Settings': '/settings',
+      'ホーム': '/',
+      '履歴': '/history',
+      '設定': '/settings',
     }.entries) {
       final fixture = await _pumpApp(tester, '/record');
 
-      await tester.tap(find.text(destination.key));
+      await _tapDestination(tester, destination.key);
       await tester.pump();
 
       expect(
@@ -154,7 +171,7 @@ void main() {
     for (final start in ['/history', '/settings']) {
       final fixture = await _pumpApp(tester, start);
 
-      await tester.tap(find.text('Record'));
+      await _tapDestination(tester, '記録');
       await tester.pumpAndSettle();
 
       expect(fixture.router.routeInformationProvider.value.uri.path, '/record');
@@ -198,6 +215,13 @@ Future<void> _finishRouteTransition(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
 }
+
+Future<void> _tapDestination(WidgetTester tester, String label) => tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text(label),
+      ),
+    );
 
 Future<_AppFixture> _pumpApp(
   WidgetTester tester,

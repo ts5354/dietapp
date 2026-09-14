@@ -22,19 +22,19 @@ class AppBottomNavigation extends StatelessWidget {
           NavigationDestination(
               icon: Icon(Icons.home_outlined),
               selectedIcon: Icon(Icons.home),
-              label: 'Home'),
+              label: 'ホーム'),
           NavigationDestination(
               icon: Icon(Icons.add_circle_outline),
               selectedIcon: Icon(Icons.add_circle),
-              label: 'Record'),
+              label: '記録'),
           NavigationDestination(
               icon: Icon(Icons.history_outlined),
               selectedIcon: Icon(Icons.history),
-              label: 'History'),
+              label: '履歴'),
           NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),
-              label: 'Settings'),
+              label: '設定'),
         ],
       );
 }

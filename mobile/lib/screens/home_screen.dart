@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/dashboard/domain/dashboard.dart';
 import '../features/dashboard/providers/dashboard_provider.dart';
+import '../core/theme/app_theme.dart';
 import '../shared/presentation/category_icon.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -40,17 +41,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           padding: const EdgeInsets.all(16),
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                _naturalDate(state.date),
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              trailing: const Icon(Icons.calendar_today_outlined),
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
               onTap: state.mode == DashboardViewMode.loading
                   ? null
                   : () => _selectDate(state.date),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(children: [
+                  Expanded(
+                    child: Text(
+                      _naturalDate(state.date),
+                      key: const Key('dashboardDate'),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: const Color(0xFF24332F),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  const Icon(Icons.calendar_today_outlined, size: 20),
+                ]),
+              ),
             ),
+            const SizedBox(height: 16),
             if (state.dashboard case final dashboard?) ...[
               if (state.mode == DashboardViewMode.error) ...[
                 Text(state.message ?? 'ホーム情報の更新中にエラーが発生しました。'),
@@ -64,15 +77,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _NextInjection(
                 dashboard.injection.nextScheduledDate,
                 state.date,
+                () => _open('/record/injection'),
               ),
               const SizedBox(height: 24),
               Text('今日の記録', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
-              _WeightCard(dashboard.weight, () => _open('/record/weight')),
-              _NutritionCard(dashboard.nutrition, () => _open('/record/food')),
-              _SymptomCard(dashboard.symptom, () => _open('/record/symptom')),
-              _InjectionCard(
-                  dashboard.injection, () => _open('/record/injection')),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(children: [
+                  _WeightCard(dashboard.weight, () => _open('/record/weight')),
+                  _NutritionCard(
+                      dashboard.nutrition, () => _open('/record/food')),
+                  _SymptomCard(
+                      dashboard.symptom, () => _open('/record/symptom')),
+                  _InjectionCard(
+                      dashboard.injection, () => _open('/record/injection')),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                key: const Key('homeRecordButton'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(60),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                onPressed: () => context.go('/record'),
+                child: const Row(children: [
+                  Icon(Icons.add_circle_outline),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text('記録する',
+                        style: TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w700)),
+                  ),
+                  Icon(Icons.chevron_right),
+                ]),
+              ),
             ] else if (state.mode == DashboardViewMode.loading) ...[
               const Padding(
                 padding: EdgeInsets.only(top: 32),
@@ -129,7 +174,7 @@ class _WeightCard extends StatelessWidget {
           if (section.record case final record?)
             Text('${_number(record.weightKg)} kg')
           else
-            const Text('未記録'),
+            const Text('この日の記録はありません'),
         ],
       );
 }
@@ -149,13 +194,13 @@ class _NutritionCard extends StatelessWidget {
       open: open,
       children: [
         if (record == null)
-          const Text('未記録')
+          const Text('この日の記録はありません')
         else if (record.mode == DashboardNutritionMode.freeDay) ...[
           const Text('Free Day'),
           const Text('この日は栄養計算を行わない日として記録されています。'),
         ] else ...[
-          Text('${record.totalCalories} kcal'),
-          Text('たんぱく質 ${_number(record.totalProteinG!)} g'),
+          Text('${_integer(record.totalCalories!)} kcal / '
+              '${_number(record.totalProteinG!)} g'),
         ],
       ],
     );
@@ -177,10 +222,10 @@ class _SymptomCard extends StatelessWidget {
       open: open,
       children: [
         if (record == null)
-          const Text('未記録')
+          const Text('この日の記録はありません')
         else ...[
           Text(
-            '${TimeOfDay.fromDateTime(record.recordedAt.toLocal()).format(context)} 記録済み',
+            '${TimeOfDay.fromDateTime(record.recordedAt.toLocal()).format(context)} に記録済み',
           ),
         ],
       ],
@@ -202,20 +247,18 @@ class _InjectionCard extends StatelessWidget {
       action: record == null ? '記録する' : '記録を見る',
       open: open,
       children: [
-        if (record == null)
-          const Text('未記録')
-        else
-          Text('${_naturalDate(record.recordDate)} 記録済み'),
+        if (record == null) const Text('この日の記録はありません') else const Text('記録済み'),
       ],
     );
   }
 }
 
 class _NextInjection extends StatelessWidget {
-  const _NextInjection(this.date, this.dashboardDate);
+  const _NextInjection(this.date, this.dashboardDate, this.open);
 
   final DateTime? date;
   final DateTime dashboardDate;
+  final VoidCallback open;
 
   @override
   Widget build(BuildContext context) {
@@ -225,38 +268,61 @@ class _NextInjection extends StatelessWidget {
         : DateUtils.dateOnly(next)
             .difference(DateUtils.dateOnly(dashboardDate))
             .inDays;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppCategory.injection.color,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(children: [
-        const CategoryIcon(AppCategory.injection),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('次回の注射',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              if (next == null)
-                const Text('予定はありません')
-              else
-                Text(
-                  _naturalDate(next),
-                  key: const Key('dashboardNextInjectionDate'),
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w700),
-                ),
-              if (days != null && days >= 0)
-                Text(days == 0 ? '今日' : 'あと$days日'),
-              if (next != null) const Text('実際の投与日は医療者の指示に従ってください。'),
-            ],
-          ),
+    return Material(
+      color: AppColors.mint.withValues(alpha: 0.13),
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        key: const Key('nextInjectionCard'),
+        borderRadius: BorderRadius.circular(24),
+        onTap: open,
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Row(children: [
+            const CategoryIcon(AppCategory.injection),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('次回の注射', style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(height: 3),
+                  if (next == null)
+                    const Text('予定はありません')
+                  else
+                    Text(
+                      _naturalDate(next),
+                      key: const Key('dashboardNextInjectionDate'),
+                      style: const TextStyle(
+                          fontSize: 21, fontWeight: FontWeight.w700),
+                    ),
+                  if (days != null && days >= 0) ...[
+                    const SizedBox(height: 7),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.82),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        child: Text(days == 0 ? '今日' : 'あと$days日'),
+                      ),
+                    ),
+                  ],
+                  if (next != null) ...[
+                    const SizedBox(height: 7),
+                    Text(
+                      '実際の投与日は医療者の指示に従ってください。',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.mint),
+          ]),
         ),
-      ]),
+      ),
     );
   }
 }
@@ -287,8 +353,23 @@ class _SectionCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: children,
           ),
-          trailing:
-              TextButton(key: actionKey, onPressed: open, child: Text(action)),
+          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+            TextButton(
+              key: actionKey,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.mint,
+                backgroundColor: AppColors.mint.withValues(alpha: 0.1),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: open,
+              child: Text(action),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.chevron_right, size: 18),
+          ]),
         ),
         const Divider(),
       ]);
@@ -302,3 +383,8 @@ String _naturalDate(DateTime date) {
 String _number(num value) => value == value.roundToDouble()
     ? value.toInt().toString()
     : value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
+
+String _integer(int value) {
+  final digits = value.toString();
+  return digits.replaceAllMapped(RegExp(r'(?=(\d{3})+(?!\d))'), (_) => ',');
+}

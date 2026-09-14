@@ -18,6 +18,13 @@ extension AppCategoryStyle on AppCategory {
         AppCategory.symptom => AppColors.symptom,
         AppCategory.injection => AppColors.injection,
       };
+
+  Color get iconColor => switch (this) {
+        AppCategory.weight => const Color(0xFF297A91),
+        AppCategory.food => const Color(0xFFB26824),
+        AppCategory.symptom => const Color(0xFFA94E62),
+        AppCategory.injection => const Color(0xFF7654A6),
+      };
 }
 
 class CategoryIcon extends StatelessWidget {
@@ -34,7 +41,7 @@ class CategoryIcon extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
         ),
         alignment: Alignment.center,
-        child: Icon(category.icon, color: const Color(0xFF394844)),
+        child: Icon(category.icon, color: category.iconColor),
       );
 }
 

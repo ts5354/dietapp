@@ -17,7 +17,8 @@ void main() {
       child: const DietApp(),
     ));
 
-    expect(find.text('ホーム'), findsOneWidget);
+    expect(find.descendant(of: find.byType(AppBar), matching: find.text('ホーム')),
+        findsOneWidget);
     expect(find.byKey(const Key('dashboardScroll')), findsOneWidget);
   });
 
@@ -38,7 +39,7 @@ void main() {
       child: const DietApp(),
     ));
 
-    await tester.tap(find.text('Record'));
+    await tester.tap(find.text('記録'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('体重'));
     await tester.pumpAndSettle();
@@ -76,7 +77,7 @@ void main() {
       overrides: [dioProvider.overrideWithValue(dio)],
       child: const DietApp(),
     ));
-    await tester.tap(find.text('Record'));
+    await tester.tap(find.text('記録'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('体重'));
     await tester.pumpAndSettle();

@@ -221,13 +221,28 @@ void main() {
         (tester) async {
       await pumpHome(tester, dashboard());
       expect(find.text('ホーム'), findsOneWidget);
+      expect(find.byKey(const Key('dashboardDate')), findsOneWidget);
       expect(find.text('62.3 kg'), findsOneWidget);
-      expect(find.text('1800 kcal'), findsOneWidget);
+      expect(find.text('1,800 kcal / 75.5 g'), findsOneWidget);
+      expect(find.text('今日の記録'), findsOneWidget);
+      expect(find.byKey(const Key('nextInjectionCard')), findsOneWidget);
+      final injectionCard = tester.widget<Material>(find
+          .ancestor(
+            of: find.byKey(const Key('nextInjectionCard')),
+            matching: find.byType(Material),
+          )
+          .first);
+      expect(injectionCard.color!.r, closeTo(42 / 255, 0.001));
+      expect(injectionCard.color!.g, closeTo(157 / 255, 0.001));
+      expect(injectionCard.color!.b, closeTo(143 / 255, 0.001));
+      await tester.scrollUntilVisible(
+          find.byKey(const Key('homeRecordButton')), 300);
+      expect(find.byKey(const Key('homeRecordButton')), findsOneWidget);
       expect(find.textContaining('記録済み'), findsWidgets);
       await tester.drag(
           find.byKey(const Key('dashboardScroll')), const Offset(0, -500));
       await tester.pumpAndSettle();
-      expect(find.text('9月8日（火） 記録済み'), findsOneWidget);
+      expect(find.text('記録済み'), findsWidgets);
       expect(
           find.byKey(const Key('dashboardNextInjectionDate')), findsOneWidget);
       expect(find.textContaining('医療者の指示'), findsOneWidget);
@@ -239,7 +254,7 @@ void main() {
     testWidgets('renders unrecorded and free day without fabricated totals',
         (tester) async {
       await pumpHome(tester, dashboard(recorded: false));
-      expect(find.text('未記録'), findsNWidgets(4));
+      expect(find.text('この日の記録はありません'), findsNWidgets(4));
       expect(find.byKey(const Key('dashboardNextInjectionDate')), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
@@ -271,11 +286,23 @@ void main() {
       expect(find.text('サーバーに接続できませんでした。'), findsOneWidget);
       expect(find.text('この日の記録はありません。'), findsNothing);
       expect(find.text('記録する'), findsNothing);
-      expect(find.text('未記録'), findsNothing);
+      expect(find.text('この日の記録はありません'), findsNothing);
       repository.responses.add(Future.value(dashboard()));
       await tester.tap(find.byKey(const Key('retryDashboardButton')));
       await tester.pumpAndSettle();
       expect(find.text('62.3 kg'), findsOneWidget);
+    });
+
+    testWidgets('fits an iPhone SE viewport without overflow', (tester) async {
+      await pumpHome(tester, dashboard());
+      tester.view.physicalSize = const Size(320, 568);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const Key('nextInjectionCard')), findsOneWidget);
+      await tester.scrollUntilVisible(
+          find.byKey(const Key('homeRecordButton')), 250);
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const Key('homeRecordButton')), findsOneWidget);
     });
   });
 }
