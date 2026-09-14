@@ -54,16 +54,25 @@ class DashboardState {
 
 final dashboardControllerProvider =
     StateNotifierProvider<DashboardController, DashboardState>(
-        (ref) => DashboardController(
-              ref.watch(dashboardRepositoryProvider),
+        (ref) => DashboardController.withRepositoryResolver(
+              () => ref.read(dashboardRepositoryProvider),
               ref.watch(deviceTimezoneProvider),
               DateTime.now(),
             ));
 
 class DashboardController extends StateNotifier<DashboardState> {
-  DashboardController(this._repository, this._timezone, DateTime now)
-      : super(DashboardState(date: DateTime(now.year, now.month, now.day)));
-  final DashboardRepository _repository;
+  DashboardController(
+    DashboardRepository repository,
+    DeviceTimezone timezone,
+    DateTime now,
+  ) : this.withRepositoryResolver(() => repository, timezone, now);
+
+  DashboardController.withRepositoryResolver(
+    this._resolveRepository,
+    this._timezone,
+    DateTime now,
+  ) : super(DashboardState(date: DateTime(now.year, now.month, now.day)));
+  final DashboardRepository Function() _resolveRepository;
   final DeviceTimezone _timezone;
   int _generation = 0;
 
@@ -82,10 +91,11 @@ class DashboardController extends StateNotifier<DashboardState> {
   Future<void> _fetch(int token, DateTime date,
       {bool keepDashboard = false}) async {
     try {
+      final repository = _resolveRepository();
       final timezone = await _timezone.currentIdentifier();
       if (!_isCurrent(token, date)) return;
       final dashboard =
-          await _repository.getDashboard(date: date, timezone: timezone);
+          await repository.getDashboard(date: date, timezone: timezone);
       if (!_isCurrent(token, date)) return;
       if (dashboard.date != date || dashboard.timezone != timezone) {
         throw ApiException.contract('Dashboard query does not match response.');

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dietapp/core/network/api_error.dart';
+import 'package:dietapp/core/network/dio_provider.dart';
 import 'package:dietapp/core/timezone/device_timezone.dart';
 import 'package:dietapp/features/dashboard/data/dashboard_repository.dart';
 import 'package:dietapp/features/dashboard/domain/dashboard.dart';
@@ -136,6 +137,30 @@ void main() {
   });
 
   group('dashboard controller', () {
+    test('configuration resolution failure becomes an initial error state',
+        () async {
+      final container = ProviderContainer(overrides: [
+        apiConfigProvider.overrideWith((ref) {
+          throw ApiException.configuration('missing API_BASE_URL');
+        }),
+        deviceTimezoneProvider
+            .overrideWithValue(FakeTimezone('America/New_York')),
+      ]);
+      addTearDown(container.dispose);
+
+      expect(
+        () => container.read(dashboardControllerProvider),
+        returnsNormally,
+      );
+      await container
+          .read(dashboardControllerProvider.notifier)
+          .load(DateTime(2026, 9, 8));
+
+      final state = container.read(dashboardControllerProvider);
+      expect(state.mode, DashboardViewMode.error);
+      expect(state.dashboard, isNull);
+    });
+
     test('initial load, date change, error and retry', () async {
       final repository = FakeDashboardRepository();
       final controller = DashboardController(
@@ -214,9 +239,67 @@ void main() {
       await mismatch.load(DateTime(2026, 9, 8));
       expect(mismatch.state.mode, DashboardViewMode.error);
     });
+
+    test('refresh failures retain an existing dashboard', () async {
+      final repository = FakeDashboardRepository()
+        ..responses.add(Future.value(dashboard()));
+      var configurationFails = false;
+      final controller = DashboardController.withRepositoryResolver(
+        () {
+          if (configurationFails) {
+            throw ApiException.configuration('missing API_BASE_URL');
+          }
+          return repository;
+        },
+        FakeTimezone('America/New_York'),
+        DateTime(2026, 9, 8),
+      );
+
+      await controller.load(DateTime(2026, 9, 8));
+      final existing = controller.state.dashboard;
+
+      repository.responses.add(dashboardFailure(const ApiException(
+        kind: ApiErrorKind.network,
+        message: 'offline',
+      )));
+      await controller.refresh();
+      expect(controller.state.mode, DashboardViewMode.error);
+      expect(controller.state.dashboard, same(existing));
+
+      configurationFails = true;
+      await controller.refresh();
+      expect(controller.state.mode, DashboardViewMode.error);
+      expect(controller.state.dashboard, same(existing));
+    });
   });
 
   group('dashboard widgets', () {
+    testWidgets('invalid API configuration renders error without throwing',
+        (tester) async {
+      var repositoryRequests = 0;
+      await tester.pumpWidget(ProviderScope(
+        overrides: [
+          apiConfigProvider.overrideWith((ref) {
+            throw ApiException.configuration('invalid API_BASE_URL');
+          }),
+          dashboardRepositoryProvider.overrideWith((ref) {
+            ref.watch(apiConfigProvider);
+            repositoryRequests++;
+            return FakeDashboardRepository();
+          }),
+          deviceTimezoneProvider
+              .overrideWithValue(FakeTimezone('America/New_York')),
+        ],
+        child: const MaterialApp(home: HomeScreen()),
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('ホーム情報の取得中にエラーが発生しました。'), findsOneWidget);
+      expect(find.byKey(const Key('retryDashboardButton')), findsOneWidget);
+      expect(repositoryRequests, 0);
+    });
+
     testWidgets('renders recorded sections and neutral wording',
         (tester) async {
       await pumpHome(tester, dashboard());
